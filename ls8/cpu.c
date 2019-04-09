@@ -1,6 +1,7 @@
 #include "cpu.h"
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #define DATA_LEN 6
 
@@ -18,26 +19,50 @@ void cpu_ram_write(struct cpu *cpu, unsigned char address, unsigned char value)
   cpu->ram[address] = value;
 }
 
-void cpu_load(struct cpu *cpu)
+void cpu_load(struct cpu *cpu, char *filename)
 {
-  char data[DATA_LEN] = {
-      // From print8.ls8
-      0b10000010, // LDI R0,8
-      0b00000000,
-      0b00001000,
-      0b01000111, // PRN R0
-      0b00000000,
-      0b00000001 // HLT
-  };
+  // char data[DATA_LEN] = {
+  //     // From print8.ls8
+  //     0b10000010, // LDI R0,8
+  //     0b00000000,
+  //     0b00001000,
+  //     0b01000111, // PRN R0
+  //     0b00000000,
+  //     0b00000001 // HLT
+  // };
 
-  int address = 0;
+  // int address = 0;
 
-  for (int i = 0; i < DATA_LEN; i++)
-  {
-    cpu->ram[address++] = data[i];
-  }
+  // for (int i = 0; i < DATA_LEN; i++)
+  // {
+  //   cpu->ram[address++] = data[i];
+  // }
 
   // TODO: Replace this with something less hard-coded
+  FILE *fp = fopen(filename, "r");
+  char line[1024];
+
+  unsigned char address = 0x00;
+
+  if (fp == NULL)
+  {
+    fprintf(stderr, "\nError opening file.\n");
+    return 1;
+  }
+
+  while (fgets(line, sizeof(line), fp) != NULL)
+  {
+    char *ptr;
+    unsigned char ret_val;
+    ret_val = strtoul(line, &ptr, 2);
+
+    if (ptr == line)
+    {
+      continue;
+    }
+    cpu_ram_write(cpu, ret_val, address++);
+  }
+  fclose(fp);
 }
 
 /**
@@ -68,9 +93,9 @@ void cpu_run(struct cpu *cpu)
   {
     // TODO
     // 1. Get the value of the current instruction (in address PC).
-    unsigned char instr = cpu_ram_read(cpu, cpu->PC);
+    unsigned char IR = cpu_ram_read(cpu, cpu->PC);
     // 2. Figure out how many operands this next instruction requires
-    unsigned int num_operands = (instr >> 6);
+    unsigned int num_operands = (IR >> 6);
     // 3. Get the appropriate value(s) of the operands following this instruction
     if (num_operands == 2)
     {
@@ -82,7 +107,7 @@ void cpu_run(struct cpu *cpu)
       operand_a = cpu->ram[cpu->PC + 1];
     }
     // 4. switch() over it to decide on a course of action.
-    switch (instr)
+    switch (IR)
     {
     case HLT:
       running = 0;
