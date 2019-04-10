@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #define DATA_LEN 6
+#define SP 7
 
 /**
  * Load the binary bytes from a .ls8 source file into a RAM array
@@ -53,14 +54,14 @@ void cpu_load(struct cpu *cpu, char *filename)
   while (fgets(line, sizeof(line), fp) != NULL)
   {
     char *ptr;
-    unsigned char ret_val;
-    ret_val = strtoul(line, &ptr, 2);
+    unsigned char ret;
+    ret = strtoul(line, &ptr, 2);
 
     if (ptr == line)
     {
       continue;
     }
-    cpu_ram_write(cpu, ret_val, address++);
+    cpu_ram_write(cpu, ret, address++);
   }
   fclose(fp);
 }
@@ -79,6 +80,20 @@ void alu(struct cpu *cpu, enum alu_op op, unsigned char regA, unsigned char regB
 
     // TODO: implement more ALU ops
   }
+}
+
+void cpu_push(struct cpu *cpu, unsigned char val)
+{
+  cpu->reg[SP]--;
+  cpu->ram[cpu->reg[SP]] = val;
+}
+
+unsigned char cpu_pop(struct cpu *cpu)
+{
+  unsigned char ret = cpu->ram[cpu->reg[SP]];
+  cpu->reg[SP]++;
+
+  return ret;
 }
 
 /**
@@ -124,6 +139,14 @@ void cpu_run(struct cpu *cpu)
 
     case MUL:
       alu(cpu, ALU_MUL, operand_a, operand_b);
+      break;
+
+    case PUSH:
+      cpu_push(cpu, cpu->reg[operand_a]);
+      break;
+
+    case POP:
+      cpu->reg[operand_a] = cpu_pop(cpu);
       break;
 
     default:
