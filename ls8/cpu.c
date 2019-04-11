@@ -149,6 +149,15 @@ void cpu_run(struct cpu *cpu)
       cpu->reg[operand_a] = cpu_pop(cpu);
       break;
 
+    case CALL:
+      cpu_push(cpu, cpu->PC + 1);
+      cpu->PC = cpu->reg[operand_a] - 2;
+      break;
+
+    case RET:
+      cpu->PC = pop(cpu);
+      break;
+
     default:
       break;
     }
