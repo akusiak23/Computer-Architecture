@@ -10,14 +10,14 @@
  * Load the binary bytes from a .ls8 source file into a RAM array
  */
 
-unsigned char cpu_ram_read(struct cpu *cpu, unsigned char address)
+unsigned char cpu_ram_read(struct cpu *cpu, unsigned char mar)
 {
-  return cpu->ram[address];
+  return cpu->ram[mar];
 }
 
-void cpu_ram_write(struct cpu *cpu, unsigned char address, unsigned char value)
+void cpu_ram_write(struct cpu *cpu, unsigned char mar, unsigned char mdr)
 {
-  cpu->ram[address] = value;
+  cpu->ram[mar] = mdr;
 }
 
 void cpu_load(struct cpu *cpu, char *filename)
@@ -48,14 +48,13 @@ void cpu_load(struct cpu *cpu, char *filename)
   if (fp == NULL)
   {
     fprintf(stderr, "\nError opening file.\n");
-    return 1;
+    exit(1);
   }
 
   while (fgets(line, sizeof(line), fp) != NULL)
   {
     char *ptr;
-    unsigned char ret;
-    ret = strtoul(line, &ptr, 2);
+    unsigned char ret = strtoul(line, &ptr, 2);
 
     if (ptr == line)
     {
@@ -76,6 +75,10 @@ void alu(struct cpu *cpu, enum alu_op op, unsigned char regA, unsigned char regB
   case ALU_MUL:
     // TODO
     cpu->reg[regA] *= cpu->reg[regB];
+    break;
+
+  case ALU_ADD:
+    cpu->reg[regA] += cpu->reg[regB];
     break;
 
     // TODO: implement more ALU ops
@@ -109,7 +112,7 @@ void cpu_run(struct cpu *cpu)
   {
     // TODO
     // 1. Get the value of the current instruction (in address PC).
-    unsigned char IR = cpu_ram_read(cpu, cpu->PC);
+    unsigned char IR = cpu->ram[cpu->PC];
     // 2. Figure out how many operands this next instruction requires
     unsigned int num_operands = (IR >> 6);
     // 3. Get the appropriate value(s) of the operands following this instruction
@@ -141,6 +144,10 @@ void cpu_run(struct cpu *cpu)
       alu(cpu, ALU_MUL, operand_a, operand_b);
       break;
 
+    case ADD:
+      alu(cpu, ALU_ADD, operand_a, operand_b);
+      break;
+
     case PUSH:
       cpu_push(cpu, cpu->reg[operand_a]);
       break;
@@ -155,7 +162,7 @@ void cpu_run(struct cpu *cpu)
       break;
 
     case RET:
-      cpu->PC = pop(cpu);
+      cpu->PC = cpu_pop(cpu);
       break;
 
     default:
